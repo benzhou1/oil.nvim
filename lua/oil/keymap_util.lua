@@ -62,10 +62,33 @@ local function resolve(rhs)
   end
 end
 
+function M.get_keymaps(def_keymaps, bufnr)
+  local keymaps = {}
+  local adapter = util.get_adapter(bufnr)
+  for k, v in pairs(def_keymaps) do
+    if adapter ~= nil then
+      if adapter.filter_keymap ~= nil and not adapter.filter_keymap(k, v) then
+        goto continue
+      end
+    end
+    keymaps[k] = v
+    ::continue::
+  end
+  local adapter_keymaps = {}
+  if adapter ~= nil and adapter.get_keymaps ~= nil then
+    adapter_keymaps = adapter.get_keymaps()
+  end
+  for k, v in pairs(adapter_keymaps) do
+    keymaps[k] = v
+  end
+  return keymaps
+end
+
 ---@param keymaps table<string, string|table|fun()>
 ---@param bufnr integer
 M.set_keymaps = function(keymaps, bufnr)
-  for k, v in pairs(keymaps) do
+  local keymaps_to_set = M.get_keymaps(keymaps, bufnr)
+  for k, v in pairs(keymaps_to_set) do
     local rhs, opts, mode = resolve(v)
     if rhs then
       vim.keymap.set(mode or "", k, rhs, vim.tbl_extend("keep", { buffer = bufnr }, opts))
@@ -77,7 +100,8 @@ end
 M.show_help = function(keymaps)
   local rhs_to_lhs = {}
   local lhs_to_all_lhs = {}
-  for k, rhs in pairs(keymaps) do
+  local keymaps_to_show = M.get_keymaps(keymaps, 0)
+  for k, rhs in pairs(keymaps_to_show) do
     if rhs then
       if rhs_to_lhs[rhs] then
         local first_lhs = rhs_to_lhs[rhs]
@@ -91,7 +115,7 @@ M.show_help = function(keymaps)
 
   local max_lhs = 1
   local keymap_entries = {}
-  for k, rhs in pairs(keymaps) do
+  for k, rhs in pairs(keymaps_to_show) do
     local all_lhs = lhs_to_all_lhs[k]
     if all_lhs then
       local _, opts = resolve(rhs)
