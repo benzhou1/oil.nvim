@@ -1,5 +1,6 @@
 local oil = require("oil")
 local util = require("oil.util")
+local columns = require("oil.columns")
 
 local M = {}
 
@@ -441,6 +442,10 @@ M.change_sort = {
     end
 
     local sort_cols = { "name", "size", "atime", "mtime", "ctime", "birthtime" }
+    local adapter = util.get_adapter(0)
+    if adapter ~= nil then
+      sort_cols = columns.get_supported_columns(adapter)
+    end
     vim.ui.select(sort_cols, { prompt = "Sort by", kind = "oil_sort_col" }, function(col)
       if not col then
         return

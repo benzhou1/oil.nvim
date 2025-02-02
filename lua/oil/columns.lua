@@ -31,6 +31,11 @@ end
 ---@return nil|oil.ColumnDefinition
 M.get_column = function(adapter, defn)
   local name = util.split_config(defn)
+  if name ~= "name" and adapter.filter_column then
+    if not adapter.filter_column(name) then
+      return nil
+    end
+  end
   return all_columns[name] or adapter.get_column(name)
 end
 
@@ -45,7 +50,13 @@ M.get_supported_columns = function(adapter_or_scheme)
   end
   assert(adapter)
   local ret = {}
-  for _, def in ipairs(config.columns) do
+  local columns = config.columns
+  local adapter_columns = adapter.config and adapter.config.columns
+  if adapter_columns ~= nil then
+    columns = adapter_columns
+  end
+
+  for _, def in ipairs(columns) do
     if M.get_column(adapter, def) then
       table.insert(ret, def)
     end
