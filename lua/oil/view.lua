@@ -552,6 +552,10 @@ end
 local function get_sort_function(adapter, num_entries)
   local idx_funs = {}
   local sort_config = config.view_options.sort
+  local adapter_sort_config = adapter.config and adapter.config.view_options and adapter.config.view_options.sort
+  if adapter_sort_config ~= nil then
+    sort_config = adapter_sort_config
+  end
 
   -- If empty, default to type + name sorting
   if vim.tbl_isempty(sort_config) then
