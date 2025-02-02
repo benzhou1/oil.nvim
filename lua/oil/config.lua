@@ -214,8 +214,13 @@ default_config.adapter_aliases = {}
 -- here we can get some performance wins
 default_config.view_options.highlight_filename = nil
 
+---@class oil.AdapterOpts
+---@field name string Name of adpater
+---@field adapter oil.Adapter Implements the adapter apis
+---@field opts table? Options specifically for adapter. Adapter should implement setup function.
+
 ---@class oil.Config
----@field adapters table<string, string> Hidden from SetupOpts
+---@field adapters table<string, string | oil.AdapterOpts> Hidden from SetupOpts
 ---@field adapter_aliases table<string, string> Hidden from SetupOpts
 ---@field trash_command? string Deprecated option that we should clean up soon
 ---@field silence_scp_warning? boolean Undocumented option
@@ -464,7 +469,23 @@ M.get_adapter_by_scheme = function(scheme)
       return nil
     end
     local ok
-    ok, adapter = pcall(require, string.format("oil.adapters.%s", name))
+    if type(name) == "string" then
+      ok, adapter = pcall(require, string.format("oil.adapters.%s", name))
+    else
+      local adapter_spec = name
+      name = adapter_spec.name
+      adapter = adapter_spec.adapter
+      if adapter ~= nil then
+        ok = true
+        local adapter_opts = adapter_spec.opts or {}
+        if adapter_opts ~= nil and adapter.setup ~= nil then
+          adapter.setup(adapter_opts)
+        end
+        if adapter.config == nil then
+          adapter.config = adapter_opts
+        end
+      end
+    end
     if ok then
       adapter.name = name
       M._adapter_by_scheme[scheme] = adapter

@@ -16,6 +16,7 @@ local M = {}
 
 ---@class (exact) oil.Adapter
 ---@field name string The unique name of the adapter (this will be set automatically)
+---@field config? table Configuration options specific to the adapter. Takes precedence over global config.
 ---@field list fun(path: string, column_defs: string[], cb: fun(err?: string, entries?: oil.InternalEntry[], fetch_more?: fun())) Async function to list a directory.
 ---@field is_modifiable fun(bufnr: integer): boolean Return true if this directory is modifiable (allows for directories with read-only permissions).
 ---@field get_column fun(name: string): nil|oil.ColumnDefinition If the adapter has any adapter-specific columns, return them when fetched by name.
@@ -31,6 +32,7 @@ local M = {}
 ---@field filter_column? fun(column: string): boolean When present, filter out columns that should not be shown
 ---@field filter_action? fun(action: oil.Action): boolean When present, filter out actions as they are created
 ---@field filter_error? fun(action: oil.ParseError): boolean When present, filter out errors from parsing a buffer
+---@field setup? fun(opts: table) Setup adapter with options
 
 ---Get the entry on a specific line (1-indexed)
 ---@param bufnr integer
