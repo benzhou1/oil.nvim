@@ -423,6 +423,7 @@ M.process_actions = function(actions, cb)
   end
 
   local finished = false
+  local adapters = {}
   progress = Progress.new()
   local function finish(err)
     if not finished then
@@ -437,6 +438,26 @@ M.process_actions = function(actions, cb)
     end
   end
 
+  local function adapter_action_finish(err)
+    local total = 0
+    local adapters_with_finish_action = {}
+    for k, v in pairs(adapters) do
+      if v.finish_action ~= nil then
+        total = total + 1
+        table.insert(adapters_with_finish_action, v)
+      end
+    end
+    for i, v in ipairs(adapters_with_finish_action) do
+      progress:set(v.name .. " finishing actions...", i, total)
+      v.finish_action(err, function (finish_action_err)
+        if finish_action_err then
+          return finish(finish_action_err)
+        end
+      end)
+    end
+    finish()
+  end
+
   -- Defer showing the progress to avoid flicker for fast operations
   vim.defer_fn(function()
     if not finished then
@@ -444,7 +465,7 @@ M.process_actions = function(actions, cb)
         -- TODO some actions are actually cancelable.
         -- We should stop them instead of stopping after the current action
         cancel = function()
-          finish("Canceled")
+          adapter_action_finish("Canceled")
         end,
       })
     end
@@ -460,7 +481,7 @@ M.process_actions = function(actions, cb)
       if did_complete then
         did_complete()
       end
-      finish()
+      adapter_action_finish()
       return
     end
     local action = actions[idx]
@@ -468,14 +489,18 @@ M.process_actions = function(actions, cb)
     idx = idx + 1
     local ok, adapter = pcall(util.get_adapter_for_action, action)
     if not ok then
-      return finish(adapter)
+      return adapter_action_finish(adapter)
     end
+    if adapters[adapter.name] == nil then
+      adapters[adapter.name] = adapter
+    end
+
     local callback = vim.schedule_wrap(function(err)
       if finished then
         -- This can happen if the user canceled out of the progress window
         return
       elseif err then
-        finish(err)
+        adapter_action_finish(err)
       else
         cache.perform_action(action)
         next_action()

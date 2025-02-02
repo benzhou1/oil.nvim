@@ -204,7 +204,15 @@ function Progress:set_action(action, idx, total)
   else
     change_line = adapter.render_action(action)
   end
-  self.lines[1] = change_line
+  self:set(change_line, idx, total)
+end
+
+--- Sets the current progress status
+---@param line string
+---@param idx integer
+---@param total integer
+function Progress:set(line, idx, total)
+  self.lines[1] = line
   self.count = string.format("%d/%d", idx, total)
   self:_reposition()
   self:_render()
