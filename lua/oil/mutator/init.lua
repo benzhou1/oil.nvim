@@ -47,6 +47,7 @@ local FIELD_TYPE = constants.FIELD_TYPE
 ---@field url string
 ---@field column string
 ---@field value any
+---@field id integer|nil
 
 ---@param all_diffs table<integer, oil.Diff[]>
 ---@return oil.Action[]
@@ -130,8 +131,16 @@ M.create_actions_from_diffs = function(all_diffs)
           end
         end
       elseif diff.type == "change" then
+        -- Both column and name could have been changed, get id from the rename diff
+        local diff_id = nil
+        for _, d in ipairs(diffs) do
+          if d.id ~= nil and d.name == diff.name then
+            diff_id = d.id
+          end
+        end
         add_action({
           type = "change",
+          id = diff_id,
           url = parent_url .. diff.name,
           entry_type = diff.entry_type,
           column = diff.column,
